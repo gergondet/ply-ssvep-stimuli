@@ -1,0 +1,43 @@
+SET(LIB_NAME ply-ssvep-stimuli)
+
+SET(${LIB_NAME}_src
+PLYMesh.cpp
+PLYObject.cpp
+)
+
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/include)
+INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIRS})
+INCLUDE_DIRECTORIES(${CMAKE_INSTALL_PREFIX}/include)
+
+ADD_LIBRARY(${LIB_NAME}
+  SHARED
+  ${${LIB_NAME}_src}
+)
+
+IF(WIN32)
+add_library( "ply-ssvep-stimuli-static" STATIC ${${LIB_NAME}_src} ${${LIB_NAME}_headers} )
+set_target_properties( "ply-ssvep-stimuli-static" PROPERTIES OUTPUT_NAME "ply-ssvep-stimuli")
+ENDIF(WIN32)
+
+SET_TARGET_PROPERTIES(${LIB_NAME}
+  PROPERTIES
+  SOVERSION ${PROJECT_VERSION}
+  INSTALL_RPATH lib)
+
+ADD_DEFINITIONS(${${PROJECT_NAME}_CXXFLAGS})
+LINK_DIRECTORIES(${CMAKE_INSTALL_PREFIX}/lib)
+TARGET_LINK_LIBRARIES(${LIB_NAME} glut GLU GL)
+# -- Not needed in WIN32 because boost comes with autolink
+
+IF(NOT WIN32)
+TARGET_LINK_LIBRARIES(${LIB_NAME} ${Boost_LIBRARIES})
+TARGET_LINK_LIBRARIES(${LIB_NAME} ${SFML_LIBRARIES})
+ENDIF(NOT WIN32)
+
+# -- Manual link for WIN32
+IF(WIN32)
+TARGET_LINK_LIBRARIES(${LIB_NAME} "sfml-graphics.lib;sfml-window.lib;sfml-system.lib;OpenGL32.lib;glu32.lib")
+ENDIF(WIN32)
+
+INSTALL(TARGETS ${LIB_NAME}
+    DESTINATION lib)
