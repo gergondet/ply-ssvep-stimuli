@@ -41,4 +41,14 @@ void PLYObject::Display(sf::RenderTarget * app, unsigned int frameCount, sf::Clo
 {
 }
 
+glm::mat4 & PLYObject::GetModel()
+{
+    return impl->mesh.getModel();
+}
+
+void PLYObject::SetModel(const glm::mat4 & model)
+{
+    impl->mesh.setModel(model);
+}
+
 }

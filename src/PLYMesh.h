@@ -2,6 +2,7 @@
 #define _H_PLYMESH_H_
 
 #include <boost/noncopyable.hpp>
+#include <iostream>
 
 #define GL_GLEXT_PROTOTYPES
 #include <SFML/Graphics.hpp>
@@ -12,6 +13,16 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+inline std::ostream & operator<<(std::ostream & os, const glm::mat4 & m)
+{
+    for(int i = 0; i < 4; ++i) {
+        for(int j = 0; j < 4; ++j) {
+            os << m[i][j] << ", ";
+        }
+        os << std::endl;
+    }
+    return os;
+}
 
 class PLYMesh : public boost::noncopyable
 {
@@ -36,7 +47,7 @@ public:
 
     glm::mat4 & getModel() { return model; }
 
-    void setModel(const glm::mat4 && m) { model = m; }
+    void setModel(const glm::mat4 & m) { model = m; }
 private:
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;

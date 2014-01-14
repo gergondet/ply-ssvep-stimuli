@@ -5,6 +5,8 @@
 
 #include <boost/shared_ptr.hpp>
 
+#include <glm/glm.hpp>
+
 class OculusWindow;
 
 namespace bciinterface
@@ -20,6 +22,10 @@ public:
     virtual void RegisterWithOculus(OculusWindow * window);
 
     virtual void Display(sf::RenderTarget * app, unsigned int frameCount, sf::Clock & clock);
+
+    glm::mat4 & GetModel();
+
+    void SetModel(const glm::mat4 & model);
 private:
     boost::shared_ptr<PLYObjectImpl> impl;
 };
