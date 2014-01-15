@@ -34,7 +34,7 @@ int main(int argc, char * argv[])
     bool highlight = false;
 
     int cmd = -1;
-    boost::thread th2( boost::bind(&bciinterface::BCIInterface::OculusDisplayLoop, &iface, boost::ref(cmd), "/home/gergondet/devel/share/OculusWindow") );
+    boost::thread th2( boost::bind(&bciinterface::BCIInterface::OculusDisplayLoop, &iface, boost::ref(cmd)) );
 
     sleep(1);
     object->RegisterWithOculus(iface.GetOculusWindow());
