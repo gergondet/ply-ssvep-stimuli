@@ -48,6 +48,10 @@ public:
     glm::mat4 & getModel() { return model; }
 
     void setModel(const glm::mat4 & m) { model = m; }
+
+    void Highlight() { highlight = true; }
+
+    void Unhighlight() { highlight =false; }
 private:
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
@@ -65,6 +69,7 @@ private:
     GLuint ibo_quads;
 
     glm::mat4 model;
+    bool highlight;
 };
 
 #endif

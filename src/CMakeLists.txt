@@ -3,6 +3,7 @@ SET(LIB_NAME ply-ssvep-stimuli)
 SET(${LIB_NAME}_src
 PLYMesh.cpp
 PLYObject.cpp
+PLYSSVEPStimulus.cpp
 )
 
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/include)

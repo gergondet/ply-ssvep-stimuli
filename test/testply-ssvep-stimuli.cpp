@@ -1,5 +1,6 @@
 #include <bci-interface/BCIInterface.h>
 #include <bci-interface/DisplayObject/PLYObject.h>
+#include <bci-interface/DisplayObject/PLYSSVEPStimulus.h>
 #include <bci-interface/Utils/FontManager.h>
 #include <bci-interface/DisplayObject/FPSCounter.h>
 
@@ -21,18 +22,24 @@ int main(int argc, char * argv[])
 
     std::string model = std::string(dirname(argv[0])) + "/models/can.ply";
     bciinterface::PLYObject * object = new bciinterface::PLYObject(model);
+    bciinterface::PLYSSVEPStimulus * stimulus = new bciinterface::PLYSSVEPStimulus(model, 6, 60);
+    stimulus->SetModel(glm::translate(glm::mat4(1.0f), glm::vec3(0., -0.25, 0.5)));
 
     bciinterface::FontManager fm;
     bciinterface::FPSCounter fps_c(fm.GetDefaultFont());
     iface.AddNonOwnedObject(&fps_c);
 
     sf::Clock anim_clock;
+    sf::Clock highlight_clock;
+    bool highlight = false;
 
     int cmd = -1;
     boost::thread th2( boost::bind(&bciinterface::BCIInterface::OculusDisplayLoop, &iface, boost::ref(cmd), "/home/gergondet/devel/share/OculusWindow") );
 
     sleep(1);
     object->RegisterWithOculus(iface.GetOculusWindow());
+    stimulus->RegisterWithOculus(iface.GetOculusWindow());
+    iface.AddObject(stimulus);
     iface.AddObject(object);
     iface.StartParadigm();
     while(iface.ParadigmStatus())
@@ -44,6 +51,12 @@ int main(int argc, char * argv[])
         glm::mat4 model_box = glm::translate(glm::mat4(1.0f), glm::vec3(0., 0.25, 0.5));
         model_box = model_box*anim_box;
         object->SetModel(model_box);
+        if((int)floor(highlight_clock.getElapsedTime().asSeconds()) % 2 == 0)
+        {
+            if(highlight) stimulus->Highlight();
+            else stimulus->Unhighlight();
+            highlight = !highlight;
+        }
     }
     th2.join();
 

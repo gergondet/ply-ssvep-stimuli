@@ -8,7 +8,7 @@
 namespace bfs = boost::filesystem;
 
 PLYMesh::PLYMesh()
-: vertices(0), normals(0), faces(0), triangle_faces(0), quad_faces(0), textures(0), passes(0)
+: vertices(0), normals(0), faces(0), triangle_faces(0), quad_faces(0), textures(0), passes(0), highlight(false)
 {
     std::string vertex_shader =
         """uniform mat4 transform;\
@@ -25,6 +25,7 @@ PLYMesh::PLYMesh()
         uniform sampler2D texture;\
         uniform mat4 modelviewprojection;\
         uniform bool useTexture=false;\
+        uniform bool highlight=false;\
         uniform float x;\
         uniform float y;\
         uniform float w;\
@@ -40,6 +41,10 @@ PLYMesh::PLYMesh()
                 texcoords.y = (texcoords.y-y)/h;\
                 vec2 tc = texcoords;\
                 gl_FragColor =  texture2D(texture, tc);\
+                if(highlight)\
+                {\
+                    gl_FragColor.y = 2*gl_FragColor.y;\
+                }\
             }\
             else\
             {\
@@ -239,6 +244,9 @@ void PLYMesh::render(glm::mat4 & vp)
     {
         GLint uniform_useTexture = glGetUniformLocation(program, "useTexture");
         glUniform1i(uniform_useTexture, 1);
+
+        GLint uniform_highlight = glGetUniformLocation(program, "highlight");
+        glUniform1i(uniform_highlight, highlight);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_faces);
 
