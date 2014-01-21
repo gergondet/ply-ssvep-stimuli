@@ -55,6 +55,7 @@ public:
 private:
     std::vector<glm::vec3> vertices;
     std::vector<glm::vec3> normals;
+    std::vector<glm::vec4> colors;
     std::vector<face> faces;
     std::vector<GLushort> triangle_faces;
     std::vector<GLushort> quad_faces;
@@ -64,6 +65,7 @@ private:
     sf::Shader shader;
     GLuint vbo_vertices;
     GLuint vbo_normals;
+    GLuint vbo_colors;
     GLuint ibo_faces;
     GLuint ibo_triangles;
     GLuint ibo_quads;

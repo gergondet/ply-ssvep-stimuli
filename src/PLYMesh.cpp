@@ -8,20 +8,24 @@
 namespace bfs = boost::filesystem;
 
 PLYMesh::PLYMesh()
-: vertices(0), normals(0), faces(0), triangle_faces(0), quad_faces(0), textures(0), passes(0), highlight(false)
+: vertices(0), normals(0), colors(0), faces(0), triangle_faces(0), quad_faces(0), textures(0), passes(0), highlight(false)
 {
     std::string vertex_shader =
         """uniform mat4 transform;\
         attribute vec3 coord3d;\
+        attribute vec4 v_color;\
         varying vec4 vertex;\
+        varying vec4 c_out;\
         void main(void)\
         {\
           gl_Position = transform*vec4(coord3d[0], coord3d[1], coord3d[2], 1.0);\
           vertex = vec4(coord3d, 1.0);\
+          c_out = v_color;\
         }\
         """;
     std::string fragment_shader =
         """varying vec4 vertex;\
+        varying vec4 c_out;\
         uniform sampler2D texture;\
         uniform mat4 modelviewprojection;\
         uniform bool useTexture=false;\
@@ -41,18 +45,21 @@ PLYMesh::PLYMesh()
                 texcoords.y = (texcoords.y-y)/h;\
                 vec2 tc = texcoords;\
                 gl_FragColor =  texture2D(texture, tc);\
-                if(highlight)\
-                {\
-                    gl_FragColor.y = 2*gl_FragColor.y;\
-                }\
             }\
             else\
             {\
-                gl_FragColor = vec4(0.2, 0.5, 1.0, 1.0);\
+                gl_FragColor = c_out;\
+            }\
+            if(highlight)\
+            {\
+                gl_FragColor.y = 2*gl_FragColor.y;\
             }\
         }\
         """;
-    shader.loadFromMemory(vertex_shader, fragment_shader);
+    if( ! shader.loadFromMemory(vertex_shader, fragment_shader) )
+    {
+        std::cout << "Error loading PLYMesh shaders" << std::endl;
+    }
 }
 
 void PLYMesh::loadFromFile(const std::string & ply_model)
@@ -62,6 +69,8 @@ void PLYMesh::loadFromFile(const std::string & ply_model)
     unsigned int vertex_count = 0;
     unsigned int face_count = 0;
     unsigned int pass_count = 0;
+    bool parsing_vertex_element = false;
+    bool color_in_vertex = false;
     std::string line;
     while(getline(in, line))
     {
@@ -71,10 +80,12 @@ void PLYMesh::loadFromFile(const std::string & ply_model)
         ss >> tmp;
         if(tmp == "element") 
         {
+            parsing_vertex_element = false;
             tmp = "";
             ss >> tmp;
             if(tmp == "vertex")
             {
+                parsing_vertex_element = true;
                 ss >> vertex_count;
             }
             if(tmp == "face")
@@ -84,6 +95,20 @@ void PLYMesh::loadFromFile(const std::string & ply_model)
             if(tmp == "pass")
             {
                 ss >> pass_count;
+            }
+        }
+        else if(parsing_vertex_element && tmp == "property")
+        {
+            tmp = "";
+            ss >> tmp;
+            if(tmp == "uchar")
+            {
+                tmp = "";
+                ss >> tmp;
+                if(tmp == "red")
+                {
+                    color_in_vertex = true;
+                }
             }
         }
         else if(tmp == "obj_info")
@@ -106,6 +131,16 @@ void PLYMesh::loadFromFile(const std::string & ply_model)
         std::stringstream ss; ss << line;
         glm::vec3 vertex(0,0,0); glm::vec3 normal(0,0,0);
         ss >> vertex.x >> vertex.y >> vertex.z >> normal.x >> normal.y >> normal.z;
+        if(color_in_vertex)
+        {
+            glm::vec4 color(0,0,0,0);
+            ss >> color.x >> color.y >> color.z >> color.w;
+            color.x = color.x/255.0f;
+            color.y = color.y/255.0f;
+            color.z = color.z/255.0f;
+            color.w = color.w/255.0f;
+            colors.push_back(color);
+        }
         vertices.push_back(vertex);
         normals.push_back(normal);
     }
@@ -176,6 +211,13 @@ void PLYMesh::loadFromFile(const std::string & ply_model)
         glBufferData(GL_ARRAY_BUFFER, normals.size()*sizeof(normals[0]), normals.data(), GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
+    if(colors.size())
+    {
+        glGenBuffers(1, &vbo_colors);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
+        glBufferData(GL_ARRAY_BUFFER, colors.size()*sizeof(colors[0]), colors.data(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
     if(faces.size())
     {
         glGenBuffers(1, &ibo_faces);
@@ -214,6 +256,19 @@ void PLYMesh::render(glm::mat4 & vp)
     GLint uniform_mvp = glGetUniformLocation(program, "transform");
     glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(vp*model));
 
+    if(colors.size())
+    {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_colors);
+        GLint attribute_v_color = glGetAttribLocation(program, "v_color");
+        if(attribute_v_color == -1)
+        {
+            std::cerr << "Could not bind attribute v_color" << std::endl;
+            exit(1);
+        }
+        glEnableVertexAttribArray(attribute_v_color);
+        glVertexAttribPointer(attribute_v_color, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    }
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo_vertices);
     GLint attribute_coord3d = glGetAttribLocation(program, "coord3d");
     if(attribute_coord3d == -1)
@@ -223,6 +278,9 @@ void PLYMesh::render(glm::mat4 & vp)
     }
     glEnableVertexAttribArray(attribute_coord3d);
     glVertexAttribPointer(attribute_coord3d, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+    GLint uniform_highlight = glGetUniformLocation(program, "highlight");
+    glUniform1i(uniform_highlight, highlight);
 
     if(passes.size() == 0)
     {
@@ -244,9 +302,6 @@ void PLYMesh::render(glm::mat4 & vp)
     {
         GLint uniform_useTexture = glGetUniformLocation(program, "useTexture");
         glUniform1i(uniform_useTexture, 1);
-
-        GLint uniform_highlight = glGetUniformLocation(program, "highlight");
-        glUniform1i(uniform_highlight, highlight);
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo_faces);
 
