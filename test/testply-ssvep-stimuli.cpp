@@ -47,6 +47,7 @@ int main(int argc, char * argv[])
         static float angle = 0;
         glm::mat4 anim_box = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0, 1, 0));
         angle += 90*anim_clock.getElapsedTime().asMicroseconds()/1e6;
+        angle = fmodf(angle, 360);
         anim_clock.restart();
         glm::mat4 model_box = glm::translate(glm::mat4(1.0f), glm::vec3(0., 0.25, 0.5));
         model_box = model_box*anim_box;
